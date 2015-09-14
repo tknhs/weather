@@ -1,0 +1,5 @@
+gom 'github.com/BurntSushi/toml'
+gom 'github.com/nlopes/slack'
+gom 'github.com/soniakeys/quant'
+gom 'github.com/soniakeys/quant/median'
+gom 'golang.org/x/net/websocket'
