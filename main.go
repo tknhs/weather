@@ -24,7 +24,7 @@ func main() {
 	w.CreateGifImage(dateArray)
 
 	// Slackに投稿
-	if err := w.PostSlack(dateArray[0]); err != nil {
+	if err := w.UploadFileToSlack(dateArray[0]); err != nil {
 		log.Fatal(err)
 	}
 }

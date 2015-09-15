@@ -17,8 +17,8 @@ import (
 
 type Weather struct {
 	YahooToken   string
-	SlackToken   string
 	SlackChannel string
+	SlackApi     *slack.Client
 }
 
 func (w *Weather) downloadImage(date, place string) (image.Image, error) {
@@ -136,27 +136,28 @@ func (w *Weather) CreateGifImage(dateArray []string) {
 	}
 }
 
-func (w *Weather) PostSlack(date string) error {
-	token := w.SlackToken
-	channelName := w.SlackChannel
-	api := slack.New(token)
+func (w *Weather) UploadFileToSlack(date string) error {
 	params := slack.FileUploadParameters{
 		Title:          "weather",
 		Filetype:       "gif",
 		File:           "weather.gif",
 		InitialComment: date,
-		Channels:       []string{channelName},
+		Channels:       []string{w.SlackChannel},
 	}
-	api.UploadFile(params)
+	_, err := w.SlackApi.UploadFile(params)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
 func NewWeather() *Weather {
 	config := NewConfig()
+	slackApi := slack.New(config.Slack.Token)
 
 	weather := &Weather{
 		YahooToken:   config.Yahoo.Token,
-		SlackToken:   config.Slack.Token,
+		SlackApi:     slackApi,
 		SlackChannel: config.Slack.Channel,
 	}
 	return weather
