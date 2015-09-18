@@ -5,15 +5,15 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 
 	"github.com/BurntSushi/toml"
 )
 
 type Config struct {
-	Yahoo YahooConfig `toml:"yahoo"`
-	Slack SlackConfig `toml:"slack"`
+	Yahoo   YahooConfig   `toml:"Yahoo"`
+	Slack   SlackConfig   `toml:"Slack"`
+	General GeneralConfig `toml:"General"`
 }
 type YahooConfig struct {
 	Token string `toml:"token"`
@@ -22,6 +22,10 @@ type YahooConfig struct {
 type SlackConfig struct {
 	Token   string `toml:"token"`
 	Channel string `toml:"channel"`
+}
+
+type GeneralConfig struct {
+	Filename string `toml:"filename"`
 }
 
 const configFile = "config.toml"
@@ -39,46 +43,56 @@ func (c *Config) scan() string {
 	return input
 }
 
-func (c *Config) LoadConfig() {
+func (c *Config) LoadConfig() error {
 	_, err := toml.DecodeFile(configFile, &c)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
+	return nil
 }
 
-func (c *Config) CreateConfig() {
+func (c *Config) CreateConfig() error {
 	var yahooConfig YahooConfig
 	fmt.Print("Input YahooToken: ")
-	textYahooToken := c.scan()
-	yahooConfig.Token = textYahooToken
+	yahooConfig.Token = c.scan()
 
 	var slackConfig SlackConfig
 	fmt.Print("Input SlackToken: ")
-	textSlackToken := c.scan()
-	slackConfig.Token = textSlackToken
+	slackConfig.Token = c.scan()
 	fmt.Print("Input SlackChannel: ")
-	textSlackChannel := c.scan()
-	slackConfig.Channel = textSlackChannel
+	slackConfig.Channel = c.scan()
+
+	var generalConfig GeneralConfig
+	fmt.Print("Input Upload Filename (.gif): ")
+	generalConfig.Filename = c.scan()
 
 	c.Yahoo = yahooConfig
 	c.Slack = slackConfig
+	c.General = generalConfig
 
 	var buffer bytes.Buffer
 	encoder := toml.NewEncoder(&buffer)
 	err := encoder.Encode(c)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	ioutil.WriteFile(configFile, []byte(buffer.String()), 0644)
+	return nil
 }
 
-func NewConfig() *Config {
+func NewConfig() (*Config, error) {
 	c := &Config{}
 	if isFile := c.FileExists(); isFile {
-		c.LoadConfig()
+		if err := c.LoadConfig(); err != nil {
+			return nil, err
+		}
 	} else {
-		c.CreateConfig()
-		c.LoadConfig()
+		if err := c.CreateConfig(); err != nil {
+			return nil, err
+		}
+		if err := c.LoadConfig(); err != nil {
+			return nil, err
+		}
 	}
-	return c
+	return c, nil
 }

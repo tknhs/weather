@@ -6,19 +6,16 @@ import (
 	"image/gif"
 	_ "image/jpeg"
 	_ "image/png"
-	"log"
 	"net/http"
 	"net/url"
 	"os"
 
-	"github.com/nlopes/slack"
 	"github.com/soniakeys/quant/median"
 )
 
 type Weather struct {
-	YahooToken   string
-	SlackChannel string
-	SlackApi     *slack.Client
+	YahooToken string
+	Filename   string
 }
 
 func (w *Weather) downloadImage(date, place string) (image.Image, error) {
@@ -68,7 +65,7 @@ func (w *Weather) downloadImage(date, place string) (image.Image, error) {
 	return src, err
 }
 
-func (w *Weather) CreateGifImage(dateArray []string) {
+func (w *Weather) CreateGifImage(dateArray []string) error {
 	g := &gif.GIF{
 		Image:     []*image.Paletted{},
 		Delay:     []int{},
@@ -78,15 +75,15 @@ func (w *Weather) CreateGifImage(dateArray []string) {
 	for _, date := range dateArray {
 		srcMain, err := w.downloadImage(date, "main")
 		if err != nil {
-			log.Fatal(err)
+			return err
 		}
 		srcTokyo, err := w.downloadImage(date, "tokyo")
 		if err != nil {
-			log.Fatal(err)
+			return err
 		}
 		srcNagaoka, err := w.downloadImage(date, "nagaoka")
 		if err != nil {
-			log.Fatal(err)
+			return err
 		}
 
 		q := median.Quantizer(256)
@@ -125,40 +122,22 @@ func (w *Weather) CreateGifImage(dateArray []string) {
 		g.Delay = append(g.Delay, 100)
 	}
 
-	out, err := os.Create("weather.gif")
+	out, err := os.Create(w.Filename + ".gif")
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	defer out.Close()
 	err = gif.EncodeAll(out, g)
-	if err != nil {
-		log.Fatal(err)
-	}
-}
-
-func (w *Weather) UploadFileToSlack(date string) error {
-	params := slack.FileUploadParameters{
-		Title:          "weather",
-		Filetype:       "gif",
-		File:           "weather.gif",
-		InitialComment: date,
-		Channels:       []string{w.SlackChannel},
-	}
-	_, err := w.SlackApi.UploadFile(params)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func NewWeather() *Weather {
-	config := NewConfig()
-	slackApi := slack.New(config.Slack.Token)
-
-	weather := &Weather{
-		YahooToken:   config.Yahoo.Token,
-		SlackApi:     slackApi,
-		SlackChannel: config.Slack.Channel,
+func NewWeather(config *Config) *Weather {
+	w := &Weather{
+		YahooToken: config.Yahoo.Token,
+		Filename:   config.General.Filename,
 	}
-	return weather
+	return w
 }
