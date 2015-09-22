@@ -12,6 +12,7 @@ type Slack struct {
 	Api      *slack.Client
 	Channel  string
 	Filename string
+	NDaysAgo int
 	TeamId   string
 	UserId   string
 }
@@ -19,7 +20,8 @@ type Slack struct {
 func (s *Slack) getFileList(date string) ([]slack.File, error) {
 	loc, _ := time.LoadLocation("Asia/Tokyo")
 	timeTo, _ := time.ParseInLocation("20060102", date[0:8], loc)
-	timeFrom := timeTo.Add(-24 * time.Hour)
+	nDaysAgo := time.Duration(-24 * s.NDaysAgo)
+	timeFrom := timeTo.Add(nDaysAgo * time.Hour)
 	params := slack.GetFilesParameters{
 		User:          s.UserId,
 		TimestampFrom: slack.JSONTime(int(timeFrom.Unix())),
@@ -74,6 +76,7 @@ func NewSlack(config *Config) (*Slack, error) {
 		Api:      slackApi,
 		Channel:  config.Slack.Channel,
 		Filename: config.General.Filename,
+		NDaysAgo: config.Slack.NDaysAgo,
 		TeamId:   resp.TeamID,
 		UserId:   resp.UserID,
 	}

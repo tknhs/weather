@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"strconv"
 
 	"github.com/BurntSushi/toml"
 )
@@ -20,8 +21,9 @@ type YahooConfig struct {
 }
 
 type SlackConfig struct {
-	Token   string `toml:"token"`
-	Channel string `toml:"channel"`
+	Token    string `toml:"token"`
+	Channel  string `toml:"channel"`
+	NDaysAgo int    `toml:"n_days_ago"`
 }
 
 type GeneralConfig struct {
@@ -61,6 +63,12 @@ func (c *Config) CreateConfig() error {
 	slackConfig.Token = c.scan()
 	fmt.Print("Input SlackChannel: ")
 	slackConfig.Channel = c.scan()
+	fmt.Print("Input SlackNDaysAgo: ")
+	nDaysAgo, err := strconv.Atoi(c.scan())
+	if err != nil {
+		return err
+	}
+	slackConfig.NDaysAgo = nDaysAgo
 
 	var generalConfig GeneralConfig
 	fmt.Print("Input Upload Filename (.gif): ")
@@ -72,8 +80,7 @@ func (c *Config) CreateConfig() error {
 
 	var buffer bytes.Buffer
 	encoder := toml.NewEncoder(&buffer)
-	err := encoder.Encode(c)
-	if err != nil {
+	if err := encoder.Encode(c); err != nil {
 		return err
 	}
 	ioutil.WriteFile(configFile, []byte(buffer.String()), 0644)
