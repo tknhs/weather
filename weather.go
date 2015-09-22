@@ -31,16 +31,17 @@ func (w *Weather) downloadImage(date, place string) (image.Image, error) {
 
 	if place == "main" {
 		values.Add("style", "bm")
-		values.Add("bbox", "34.710834,137.726126,37.442060,139.309088")
+		values.Add("bbox", "34.710834,137.726126,37.242060,137.700088")
 		values.Add("pin1", "35.662713,139.709088,,blue")
 		values.Add("pin2", "37.442060,138.819511,,red")
+		values.Add("pin3", "35.0010405,135.7593765,,yellow")
 		values.Add("z", "9")
-		values.Add("width", "650")
-		values.Add("height", "700")
+		values.Add("width", "900")
+		values.Add("height", "900")
 	} else {
-		values.Add("style", "bm.c.city:off|bm.p.13113:ccc|bm.p.15202:ccc")
-		values.Add("height", "350")
-		values.Add("width", "350")
+		values.Add("style", "bm.c.city:off|bm.p.13113:ccc|bm.p.15202:ccc|bm.p.26106:ccc")
+		values.Add("height", "300")
+		values.Add("width", "300")
 		values.Add("z", "11")
 
 		if place == "tokyo" {
@@ -49,6 +50,9 @@ func (w *Weather) downloadImage(date, place string) (image.Image, error) {
 		} else if place == "nagaoka" {
 			// nagaoka
 			values.Add("pin2", "37.442060,138.819511,,red")
+		} else if place == "kyoto" {
+			// kyoto
+			values.Add("pin3", "35.0010405,135.7593765,,yellow")
 		}
 	}
 
@@ -85,6 +89,10 @@ func (w *Weather) CreateGifImage(dateArray []string) error {
 		if err != nil {
 			return err
 		}
+		srcKyoto, err := w.downloadImage(date, "kyoto")
+		if err != nil {
+			return err
+		}
 
 		q := median.Quantizer(256)
 		p := q.Quantize(make(color.Palette, 0, 256), srcMain)
@@ -104,14 +112,23 @@ func (w *Weather) CreateGifImage(dateArray []string) error {
 		for x := minX; x < maxX; x++ {
 			divideX := x - rMain.Max.X
 			for y := minY; y < maxY; y++ {
-				divideY := y - rNagaoka.Max.Y
 				if x < rMain.Max.X && y < rMain.Max.Y {
+					// whole map
 					dst.Set(x, y, srcMain.At(x, y))
-				} else if x > rMain.Max.X && y < rNagaoka.Max.Y {
-					dst.Set(x, y, srcNagaoka.At(divideX, y))
-				} else if x > rMain.Max.X && y > rNagaoka.Max.Y {
-					dst.Set(x, y, srcTokyo.At(divideX, divideY))
-				} else if x == rMain.Max.X || (x == rMain.Max.X && y == rNagaoka.Max.Y) {
+				} else if x > rMain.Max.X {
+					if y < rNagaoka.Max.Y {
+						// nagaoka
+						dst.Set(x, y, srcNagaoka.At(divideX, y))
+					} else if y > rNagaoka.Max.Y && y < rNagaoka.Max.Y+rTokyo.Max.Y {
+						// tokyo
+						divideY := y - rNagaoka.Max.Y
+						dst.Set(x, y, srcTokyo.At(divideX, divideY))
+					} else if y > rNagaoka.Max.Y+rTokyo.Max.Y {
+						// kyoto
+						divideY := y - (rNagaoka.Max.Y + rTokyo.Max.Y)
+						dst.Set(x, y, srcKyoto.At(divideX, divideY))
+					}
+				} else if x == rMain.Max.X /* || (x == rMain.Max.X && y == rNagaoka.Max.Y)*/ {
 					// 境界線塗りつぶし
 					dst.Set(x, y, color.RGBA{uint8(0), uint8(0), uint8(0), uint8(0)})
 				}
