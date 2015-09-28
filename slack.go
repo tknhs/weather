@@ -18,8 +18,12 @@ type Slack struct {
 }
 
 func (s *Slack) getFileList(date string) ([]slack.File, error) {
-	loc, _ := time.LoadLocation("Asia/Tokyo")
-	timeTo, _ := time.ParseInLocation("20060102", date[0:8], loc)
+	loc := time.FixedZone("Asia/Tokyo", 9*60*60)
+	timeTo, err := time.ParseInLocation("20060102", date[0:8], loc)
+	if err != nil {
+		return nil, err
+	}
+
 	nDaysAgo := time.Duration(-24 * s.NDaysAgo)
 	timeFrom := timeTo.Add(nDaysAgo * time.Hour)
 	params := slack.GetFilesParameters{
