@@ -24,19 +24,30 @@ func (s *Slack) getFileList(date string) ([]slack.File, error) {
 		return nil, err
 	}
 
+	var fileArray []slack.File
 	nDaysAgo := time.Duration(-24 * s.NDaysAgo)
 	timeFrom := timeTo.Add(nDaysAgo * time.Hour)
-	params := slack.GetFilesParameters{
-		User:          s.UserId,
-		TimestampFrom: slack.JSONTime(int(timeFrom.Unix())),
-		TimestampTo:   slack.JSONTime(int(timeTo.Unix())),
-		Types:         "GIF",
+	page := 1
+	for {
+		params := slack.GetFilesParameters{
+			User:          s.UserId,
+			TimestampFrom: slack.JSONTime(int(timeFrom.Unix())),
+			TimestampTo:   slack.JSONTime(int(timeTo.Unix())),
+			Types:         "GIF",
+			Page:          page,
+		}
+		files, p, err := s.Api.GetFiles(params)
+		if err != nil {
+			return nil, err
+		}
+		fileArray = append(fileArray, files...)
+
+		if p.Page == p.Pages {
+			break
+		}
+		page += 1
 	}
-	files, _, err := s.Api.GetFiles(params)
-	if err != nil {
-		return nil, err
-	}
-	return files, nil
+	return fileArray, nil
 }
 
 func (s *Slack) UploadFile(date string) error {

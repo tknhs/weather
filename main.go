@@ -38,7 +38,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// 前日分の投稿画像を削除
+	// 指定した日数分の投稿画像を削除
 	if err := s.DeleteFiles(dateArray[0]); err != nil {
 		log.Fatal(err)
 	}
