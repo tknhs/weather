@@ -40,12 +40,18 @@ func (s *Slack) getFileList(date string) ([]slack.File, error) {
 		if err != nil {
 			return nil, err
 		}
-		fileArray = append(fileArray, files...)
 
-		if p.Page == p.Pages {
+		if len(files) == 0 {
 			break
+		} else {
+			fileArray = append(fileArray, files...)
 		}
-		page += 1
+
+		if p.Page >= p.Pages {
+			break
+		} else {
+			page += 1
+		}
 	}
 	return fileArray, nil
 }
